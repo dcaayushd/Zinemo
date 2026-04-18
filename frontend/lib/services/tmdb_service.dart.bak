@@ -1,0 +1,147 @@
+import 'package:dio/dio.dart';
+import 'package:zinemo/config/api_client.dart';
+import 'package:zinemo/models/content.dart';
+
+/// Service for TMDB content operations (abstracted from API)
+class TMDBService {
+  static const String _basePath = '/movies';
+
+  /// Search movies and TV shows
+  static Future<List<Content>> search(String query) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/search',
+        queryParameters: {'q': query},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Search error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get trending movies/TV
+  static Future<List<Content>> getTrending({String timeWindow = 'week'}) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/trending',
+        queryParameters: {'time_window': timeWindow},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get trending error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get top rated movies/TV
+  static Future<List<Content>> getTopRated() async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/top-rated',
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get top rated error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get new releases
+  static Future<List<Content>> getNewReleases() async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/new-releases',
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get new releases error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get movie/TV details by TMDB ID
+  static Future<Content?> getDetails(int tmdbId, String mediaType) async {
+    try {
+      final response = await ApiClient.get<Map<String, dynamic>>(
+        '$_basePath/$tmdbId',
+        queryParameters: {'media_type': mediaType},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return Content.fromJson(response.data!);
+      }
+      return null;
+    } on DioException catch (e) {
+      print('Get details error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get recommendations for a movie/TV
+  static Future<List<Content>> getRecommendations(
+    int tmdbId,
+    String mediaType,
+  ) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/$tmdbId/recommendations',
+        queryParameters: {'media_type': mediaType},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get recommendations error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get similar movies/TV
+  static Future<List<Content>> getSimilar(int tmdbId, String mediaType) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/$tmdbId/similar',
+        queryParameters: {'media_type': mediaType},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map((item) => Content.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get similar error: $e');
+      rethrow;
+    }
+  }
+}
