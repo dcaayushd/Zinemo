@@ -242,7 +242,7 @@ class CrewSection extends ConsumerWidget {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

@@ -44,7 +44,7 @@ class _MovieDetailScreenState extends ConsumerState<MovieDetailScreen>
   bool _showLogModal = false;
   double _userRating = 0.0;
   bool _isLiked = false;
-  bool _isWatchlist = false;
+  final bool _isWatchlist = false;
   DateTime? _selectedDate;
 
   @override

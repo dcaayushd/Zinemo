@@ -9,23 +9,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check backend deploy secret
+        id: backend_gate
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_API }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "RENDER_DEPLOY_HOOK_API is not set; skipping backend deployment."
+          fi
       - uses: actions/setup-node@v4
+        if: steps.backend_gate.outputs.enabled == 'true'
         with:
           node-version: '20'
-      - run: cd backend && npm ci && npm run build
-      - run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+      - if: steps.backend_gate.outputs.enabled == 'true'
+        run: cd backend && npm ci && npm run build
+      - if: steps.backend_gate.outputs.enabled == 'true'
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
 
   deploy-ml:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_ML }}
+      - name: Check ml deploy secret
+        id: ml_gate
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_ML }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "RENDER_DEPLOY_HOOK_ML is not set; skipping ML deployment."
+          fi
+      - if: steps.ml_gate.outputs.enabled == 'true'
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_ML }}"
 
   run-migrations:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check migration secrets
+        id: migration_gate
+        run: |
+          if [ -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && [ -n "${{ secrets.SUPABASE_DB_PASSWORD }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Supabase migration secrets are not set; skipping migrations."
+          fi
       - uses: supabase/setup-cli@v1
-      - run: supabase db push --linked
+        if: steps.migration_gate.outputs.enabled == 'true'
+      - if: steps.migration_gate.outputs.enabled == 'true'
+        run: supabase db push --linked --password "${{ secrets.SUPABASE_DB_PASSWORD }}" --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

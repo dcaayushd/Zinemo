@@ -4,8 +4,5 @@ class ZinemoContentHistory {
   final ZinemoTitle title;
   final DateTime watchedAt;
 
-  ZinemoContentHistory({
-    required this.title,
-    required this.watchedAt,
-  });
+  ZinemoContentHistory({required this.title, required this.watchedAt});
 }

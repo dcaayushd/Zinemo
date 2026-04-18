@@ -679,10 +679,10 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen>
                 alignment: Alignment.center,
                 transform: Matrix4.identity()
                   ..setEntry(3, 2, 0.0012)
-                  ..translate(translateX, translateY, translateZ)
+                  ..translateByDouble(translateX, translateY, translateZ, 1)
                   ..rotateZ(rotateZ)
                   ..rotateX(rotateX)
-                  ..scale(scaleX, scaleY),
+                  ..scaleByDouble(scaleX, scaleY, 1, 1),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,

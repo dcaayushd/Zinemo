@@ -9,35 +9,50 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Prepare frontend env file
+        run: cp .env.example .env
       - run: flutter pub get
       - run: flutter analyze
       - run: dart format --set-exit-if-changed lib test
 
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Prepare frontend env file
+        run: cp .env.example .env
       - run: flutter pub get
       - run: flutter test
 
   targeted-contract-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Prepare frontend env file
+        run: cp .env.example .env
       - run: flutter pub get
       - name: Run recommendation + retry contract tests
         run: |
@@ -48,6 +63,9 @@ jobs:
   build-android:
     needs: [test, targeted-contract-tests]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Java
@@ -59,6 +77,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Prepare frontend env file
+        run: cp .env.example .env
       - name: Install dependencies
         run: flutter pub get
       - name: Build APK
@@ -67,26 +87,31 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
 
   build-ios:
     needs: [test, targeted-contract-tests]
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Prepare frontend env file
+        run: cp .env.example .env
       - name: Install dependencies
         run: flutter pub get
       - name: Build iOS app
-        run: flutter build ios --release
+        run: flutter build ios --release --no-codesign
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: app-ios
-          path: build/ios/iphoneos/
+          path: frontend/build/ios/iphoneos/
 
   deploy-staging:
     needs: [build-android, build-ios]

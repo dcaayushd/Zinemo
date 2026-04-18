@@ -41,13 +41,13 @@ class _TVDetailScreenState extends ConsumerState<TVDetailScreen>
 
   bool _showLogModal = false;
   bool _isUpdatingSeasonProgress = false;
-  double _userRating = 0.0;
-  bool _isLiked = false;
-  bool _isWatchlist = false;
+  final double _userRating = 0.0;
+  final bool _isLiked = false;
+  final bool _isWatchlist = false;
   DateTime? _selectedDate;
   int? _selectedSeason;
   int? _selectedEpisode;
-  bool _logFullShow =
+  final bool _logFullShow =
       true; // true = log entire show, false = log specific episode
 
   @override
