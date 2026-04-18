@@ -1,0 +1,46 @@
+{
+  "name": "zinemo-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext ts",
+    "test": "jest --config jest.config.ts --coverage",
+    "db:push": "supabase db push",
+    "db:migrate": "supabase db push --linked"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
+    "axios": "^1.7.0",
+    "bullmq": "^5.9.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.3.0",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.5.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.3",
+    "pgvector": "^0.2.1",
+    "redis": "^4.7.0",
+    "uuid": "^11.0.5",
+    "winston": "^3.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.10",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^9.21.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.2"
+  }
+}

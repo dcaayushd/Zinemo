@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: zinemo-api
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RECOMMENDATION_MODE
+        value: scratch
+      - key: ML_SERVICE_URL
+        value: https://zinemo-ml.onrender.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: TMDB_ACCESS_TOKEN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zinemo-redis
+          property: connectionString
+
+  - type: web
+    name: zinemo-ml
+    env: docker
+    rootDir: ml-service
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MODEL_DIR
+        value: /tmp/zinemo_models
+      - key: PORT
+        value: "8000"
+      - key: NODE_API_URL
+        value: https://zinemo-api.onrender.com
+
+  - type: redis
+    name: zinemo-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
