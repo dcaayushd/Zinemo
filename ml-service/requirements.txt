@@ -1,0 +1,15 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+lightfm @ git+https://github.com/lyst/lightfm.git@0c9c31e027b976beab2385e268b58010fff46096
+implicit==0.7.2
+scikit-learn==1.5.0
+sentence-transformers==3.0.1
+numpy==1.26.4
+scipy==1.13.1
+joblib==1.4.2
+supabase==2.5.0
+apscheduler==3.10.4
+pydantic==2.7.1
+httpx==0.27.0
+torch==2.3.1
+transformers==4.41.2
