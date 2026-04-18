@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Env files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Backend (Node)
+node_modules/
+backend/node_modules/
+backend/coverage/
+backend/dump.rdb
+
+# Frontend (Flutter)
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/build/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/ios/Pods/
+frontend/ios/Flutter/ephemeral/
+
+# ML service (Python)
+ml-service/.venv/
+ml-service/__pycache__/
+ml-service/.pytest_cache/
+ml-service/.mypy_cache/
+ml-service/**/*.pyc
