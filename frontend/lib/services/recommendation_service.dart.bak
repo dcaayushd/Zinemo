@@ -1,0 +1,92 @@
+import 'package:dio/dio.dart';
+import 'package:zinemo/config/api_client.dart';
+
+/// Recommendation item model
+class RecommendationItem {
+  final int tmdbId;
+  final String mediaType;
+  final double score;
+  final String reason;
+  final String algorithm;
+
+  RecommendationItem({
+    required this.tmdbId,
+    required this.mediaType,
+    required this.score,
+    required this.reason,
+    required this.algorithm,
+  });
+
+  factory RecommendationItem.fromJson(Map<String, dynamic> json) {
+    return RecommendationItem(
+      tmdbId: json['tmdb_id'] as int? ?? 0,
+      mediaType: json['media_type'] as String? ?? 'movie',
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
+      reason: json['reason'] as String? ?? 'Recommended for you',
+      algorithm: json['algorithm'] as String? ?? 'hybrid',
+    );
+  }
+}
+
+/// Service for personalized recommendations from ML backend
+class RecommendationService {
+  static const String _basePath = '/recommendations';
+
+  /// Get personalized recommendations for current user
+  static Future<List<RecommendationItem>> getForYou({
+    String? genre,
+    int limit = 30,
+  }) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/foryou',
+        queryParameters: {if (genre != null) 'genre': genre, 'limit': limit},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map(
+              (item) =>
+                  RecommendationItem.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get recommendations error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get similar content by TMDB ID
+  static Future<List<RecommendationItem>> getSimilar(int tmdbId) async {
+    try {
+      final response = await ApiClient.get<List<dynamic>>(
+        '$_basePath/similar/$tmdbId',
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return (response.data as List)
+            .map(
+              (item) =>
+                  RecommendationItem.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print('Get similar error: $e');
+      rethrow;
+    }
+  }
+
+  /// Trigger model retraining (typically after 50 new logs)
+  static Future<void> triggerRetrain() async {
+    try {
+      await ApiClient.post('$_basePath/retrain');
+    } on DioException catch (e) {
+      print('Retrain trigger error: $e');
+      // Non-fatal error
+    }
+  }
+}

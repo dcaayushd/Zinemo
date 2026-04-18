@@ -1,0 +1,294 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zinemo/models/content.dart';
+import 'package:zinemo/models/log.dart';
+import 'package:zinemo/services/hive_manager.dart';
+import 'package:zinemo/services/recommendation_service.dart';
+import 'package:zinemo/services/tmdb_service.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Current authenticated user
+final authUserProvider = FutureProvider<User?>((ref) async {
+  try {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) return null;
+
+    final userData = await Supabase.instance.client
+        .from('profiles')
+        .select()
+        .eq('id', session.user.id)
+        .single();
+
+    return User.fromJson(Map<String, dynamic>.from(userData));
+  } catch (e) {
+    return null;
+  }
+});
+
+/// User's watch history
+final watchHistoryProvider = FutureProvider<List<Log>>((ref) async {
+  try {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final logsData = await Supabase.instance.client
+        .from('logs')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(100);
+
+    return (logsData as List)
+        .map((item) => Log.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  } catch (e) {
+    print('Watch history error: $e');
+    // Return cached logs as fallback
+    return HiveManager.getAllLogs();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Search provider with debounce
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
+final searchResultsProvider = FutureProvider<List<Content>>((ref) async {
+  final query = ref.watch(searchQueryProvider);
+
+  if (query.isEmpty) return [];
+
+  try {
+    // Check cache first
+    final cached = HiveManager.getCachedContent('search_$query');
+    if (cached != null) return [cached];
+
+    final results = await TMDBService.search(query);
+
+    // Cache results
+    for (final result in results) {
+      await HiveManager.cacheContent('search_${result.tmdbId}', result);
+    }
+
+    return results;
+  } catch (e) {
+
+    return [];
+  }
+});
+
+/// Trending content
+final trendingProvider = FutureProvider<List<Content>>((ref) async {
+  try {
+    final cached = HiveManager.getCachedContentList('trending');
+    if (cached != null) return cached;
+
+    final trending = await TMDBService.getTrending();
+    await HiveManager.cacheContentList('trending', trending);
+
+    return trending;
+  } catch (e) {
+    return [];
+  }
+});
+
+/// Top-rated content
+final topRatedProvider = FutureProvider<List<Content>>((ref) async {
+  try {
+    final cached = HiveManager.getCachedContentList('top_rated');
+    if (cached != null) return cached;
+
+    final topRated = await TMDBService.getTopRated();
+    await HiveManager.cacheContentList('top_rated', topRated);
+
+    return topRated;
+  } catch (e) {
+    return [];
+  }
+});
+
+/// New releases
+final newReleasesProvider = FutureProvider<List<Content>>((ref) async {
+  try {
+    final cached = HiveManager.getCachedContentList('new_releases');
+    if (cached != null) return cached;
+
+    final newReleases = await TMDBService.getNewReleases();
+    await HiveManager.cacheContentList('new_releases', newReleases);
+
+    return newReleases;
+  } catch (e) {
+    return [];
+  }
+});
+
+/// Movie detail by TMDB ID
+final movieDetailProvider = FutureProvider.family<Content?, int>((
+  ref,
+  tmdbId,
+) async {
+  try {
+    // Check cache
+    final cached = HiveManager.getCachedContent('detail_$tmdbId');
+    if (cached != null) return cached;
+
+    final detail = await TMDBService.getDetails(tmdbId, 'movie');
+    if (detail != null) {
+      await HiveManager.cacheContent('detail_$tmdbId', detail);
+    }
+
+    return detail;
+  } catch (e) {
+    return null;
+  }
+});
+
+/// Similar content to a movie
+final similarContentProvider = FutureProvider.family<List<Content>, int>((
+  ref,
+  tmdbId,
+) async {
+  try {
+    return await TMDBService.getSimilar(tmdbId, 'movie');
+  } catch (e) {
+    print('Similar content error: $e');
+    return [];
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECOMMENDATION PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Selected genre filter
+final genreFilterProvider = StateProvider<String?>((ref) => null);
+
+/// Personalized recommendations from ML backend
+final recommendationsProvider = FutureProvider<List<RecommendationItem>>((
+  ref,
+) async {
+  try {
+    final genre = ref.watch(genreFilterProvider);
+    return await RecommendationService.getForYou(genre: genre);
+  } catch (e) {
+    print('Recommendations error: $e');
+    return [];
+  }
+});
+
+/// Similar recommendations to a specific content item
+final similarRecommendationsProvider =
+    FutureProvider.family<List<RecommendationItem>, int>((ref, tmdbId) async {
+      try {
+        return await RecommendationService.getSimilar(tmdbId);
+      } catch (e) {
+        print('Similar recommendations error: $e');
+        return [];
+      }
+    });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROFILE & STATS PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// User profile with extended data
+final userProfileProvider = FutureProvider<User?>((ref) async {
+  return ref.watch(authUserProvider.future);
+});
+
+/// User statistics
+final userStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  try {
+    final history = await ref.watch(watchHistoryProvider.future);
+
+    final totalWatched = history.length;
+    final avgRating = history.isEmpty
+        ? 0.0
+        : history
+                  .where((log) => log.rating != null)
+                  .fold<double>(0.0, (sum, log) => sum + (log.rating ?? 0.0)) /
+              history.where((log) => log.rating != null).length;
+
+    final favoriteGenres = <String, int>{};
+    // Genre parsing would be expanded based on Content model integration
+
+    return {
+      'totalWatched': totalWatched,
+      'avgRating': avgRating,
+      'favoriteGenres': favoriteGenres,
+      'totalMinutesWatched': history.length * 120, // Rough estimate
+    };
+  } catch (e) {
+    return {
+      'totalWatched': 0,
+      'avgRating': 0.0,
+      'favoriteGenres': <String, int>{},
+      'totalMinutesWatched': 0,
+    };
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOG MANAGEMENT PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Add new log
+final addLogProvider = FutureProvider.family<void, Log>((ref, log) async {
+  try {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    final newLog = log.copyWith(userId: userId);
+
+    // Save to Supabase
+    await Supabase.instance.client.from('logs').insert(newLog.toJson());
+
+    // Save to local cache
+    await HiveManager.saveLog(newLog);
+
+    // Invalidate affected providers
+    ref.invalidate(watchHistoryProvider);
+    ref.invalidate(userStatsProvider);
+    ref.invalidate(recommendationsProvider);
+  } catch (e) {
+    rethrow;
+  }
+});
+
+/// Update log
+final updateLogProvider = FutureProvider.family<void, Log>((ref, log) async {
+  try {
+    await Supabase.instance.client
+        .from('logs')
+        .update(log.toJson())
+        .eq('id', log.id);
+
+    await HiveManager.saveLog(log);
+
+    ref.invalidate(watchHistoryProvider);
+    ref.invalidate(userStatsProvider);
+  } catch (e) {
+    rethrow;
+  }
+});
+
+/// Delete log
+final deleteLogProvider = FutureProvider.family<void, String>((
+  ref,
+  logId,
+) async {
+  try {
+    await Supabase.instance.client.from('logs').delete().eq('id', logId);
+    await HiveManager.deleteLog(logId);
+
+    ref.invalidate(watchHistoryProvider);
+    ref.invalidate(userStatsProvider);
+  } catch (e) {
+    rethrow;
+  }
+});
